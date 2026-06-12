@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conector MeuPluggy</title>
+    <!-- Carrega o script oficial do Widget da Pluggy -->
+    <script src="https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f5f7;
+            margin: 0;
+        }
+        .btn-conectar {
+            background-color: #0057FF;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.2s;
+        }
+        .btn-conectar:hover {
+            background-color: #0042C2;
+        }
+        #status {
+            margin-top: 20px;
+            color: #555;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Integração Open Finance</h1>
+    <p>Clique no botão abaixo para conectar sua conta do MeuPluggy.</p>
+    <button class="btn-conectar" onclick="abrirWidgetPluggy()">Conectar Conta Bancária</button>
+    <div id="status"></div>
+
+    <script>
+        async function abrirWidgetPluggy() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "Gerando token seguro...";
+
+            try {
+                // Busca o accessToken gerado pela nossa rota /api/proxy do Python
+                const response = await fetch('/api/proxy', { method: 'POST' });
+                const data = await response.json();
+                
+                if (!data.accessToken) {
+                    throw new Error("Token não encontrado na resposta do servidor.");
+                }
+
+                statusDiv.innerText = "Abrindo o seletor de bancos...";
+
+                // Inicializa o Widget da Pluggy na tela
+                const pluggyConnect = new PluggyConnect({
+                    connectToken: data.accessToken,
+                    connectorId: 4, // ID do conector do MeuPluggy
+                    onSuccess: (itemData) => {
+                        console.log('Sucesso! Conta conectada:', itemData);
+                        statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
+                    },
+                    onError: (error) => {
+                        console.error('Erro no widget da Pluggy:', error);
+                        statusDiv.innerHTML = `<b style="color: red;">Erro na conexão:</b> ${error.message || error}`;
+                    }
+                });
+
+                pluggyConnect.init();
+
+            } catch (error) {
+                console.error('Erro ao iniciar o processo:', error);
+                statusDiv.innerHTML = `<b style="color: red;">Erro:</b> Não foi possível carregar o conector.`;
+            }
+        }
+    </script>
+</body>
+</html>
