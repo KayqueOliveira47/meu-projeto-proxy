@@ -1,2 +1,12 @@
+[project]
+name = "meu-projeto-proxy"
+version = "0.1.0"
+description = "Proxy de Open Finance para Pluggy"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.0.2",
+    "requests>=2.31.0",
+]
+
 [tool.vercel]
 entrypoint = "api.proxy:app"
