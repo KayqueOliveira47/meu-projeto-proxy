@@ -6,8 +6,10 @@ from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 # Rota que lida com o Proxy e também gerencia o CORS automaticamente
-@app.route('/api/proxy', methods=['POST', 'OPTIONS'])
+# Mude de @app.route('/api/proxy', ...) para apenas '/'
+@app.route('/', methods=['POST', 'OPTIONS'])
 def proxy_pluggy():
+    # ... resto do código igual ...
     # 1. Trata o Preflight request do CORS
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
