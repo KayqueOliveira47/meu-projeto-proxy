@@ -1,38 +1,26 @@
 import json
 import os
 import requests
+from werkzeug.wrappers import Request, Response
 
+@Request.application
 def handler(request):
-    """
-    Função nativa padrão que a Vercel encontra automaticamente.
-    O argumento 'request' (opcional no Python puro da Vercel) representa a requisição.
-    """
-    
-    # 1. Tratar o CORS (Preflight para requisições vindas do Front-end)
-    # Se o método for OPTIONS, retorna apenas os headers de liberação
+    # 1. Tratar CORS (Preflight)
     if request.method == 'OPTIONS':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type'
-            },
-            'body': ''
-        }
+        response = Response('', status=200)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
 
-    # Garantir que aceitamos apenas POST para segurança do proxy
     if request.method != 'POST':
-        return {
-            'statusCode': 405,
-            'body': 'Método não permitido'
-        }
+        return Response('Método não permitido', status=405)
 
-    # 2. Buscar credenciais das variáveis de ambiente da Vercel
+    # 2. Pegar credenciais da Pluggy nas variáveis de ambiente da Vercel
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
     
-    # 3. Autenticar na API da Pluggy
+    # 3. Autenticação na Pluggy
     auth_url = "https://api.pluggy.ai/auth"
     payload = {
         "clientId": client_id,
@@ -43,14 +31,11 @@ def handler(request):
     auth_response = requests.post(auth_url, json=payload, headers=headers)
     
     if auth_response.status_code != 200:
-        return {
-            'statusCode': 500,
-            'body': 'Erro ao autenticar com a Pluggy'
-        }
+        return Response('Erro ao autenticar com a Pluggy', status=500)
         
     api_token = auth_response.json().get("apiKey")
     
-    # 4. Gerar o Connect Token para o Widget
+    # 4. Gerar o Connect Token
     connect_token_url = "https://api.pluggy.ai/connect_token"
     connect_headers = {
         "Content-Type": "application/json",
@@ -59,14 +44,9 @@ def handler(request):
     
     token_res = requests.post(connect_token_url, json={}, headers=connect_headers)
     
-    # 5. Retornar a resposta estruturada no padrão que a Vercel espera
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        },
-        'body': json.dumps(token_res.json())
-    }
+    # 5. Retornar resposta em JSON para o seu Frontend
+    response = Response(json.dumps(token_res.json()), status=200, mimetype='application/json')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
