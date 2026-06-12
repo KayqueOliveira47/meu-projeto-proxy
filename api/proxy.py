@@ -1,33 +1,27 @@
-import json
 import os
+import json
 import requests
+from flask import Flask, jsonify, request
 
-def handler(environ, start_response):
-    # 1. Captura o método HTTP
-    request_method = environ.get('REQUEST_METHOD', 'GET')
+app = Flask(__name__)
 
-    # 2. Trata requisições CORS (Preflight)
-    if request_method == 'OPTIONS':
-        headers = [
-            ('Content-Type', 'text/plain'),
-            ('Access-Control-Allow-Origin', '*'),
-            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-            ('Access-Control-Allow-Headers', 'Content-Type')
-        ]
-        start_response('200 OK', headers)
-        return [b'']
+# Rota que lida com o Proxy e também gerencia o CORS automaticamente
+@app.route('/api/proxy', methods=['POST', 'OPTIONS'])
+def proxy_pluggy():
+    # 1. Trata o Preflight request do CORS
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        headers = response.headers
+        headers['Access-Control-Allow-Origin'] = '*'
+        headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
 
-    # Bloqueia se não for POST
-    if request_method != 'POST':
-        headers = [('Content-Type', 'text/plain')]
-        start_response('405 Method Not Allowed', headers)
-        return [b'Metodo nao permitido']
-
-    # 3. Credenciais da Pluggy nas variáveis de ambiente da Vercel
+    # 2. Buscar credenciais das variáveis de ambiente da Vercel
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
     
-    # 4. Autenticação na Pluggy
+    # 3. Autenticar na API da Pluggy
     auth_url = "https://api.pluggy.ai/auth"
     payload = {
         "clientId": client_id,
@@ -38,13 +32,11 @@ def handler(environ, start_response):
     auth_response = requests.post(auth_url, json=payload, headers=auth_headers)
     
     if auth_response.status_code != 200:
-        headers = [('Content-Type', 'text/plain')]
-        start_response('500 Internal Server Error', headers)
-        return [b'Erro ao autenticar com a Pluggy']
+        return jsonify({"error": "Erro ao autenticar com a Pluggy"}), 500
         
     api_token = auth_response.json().get("apiKey")
     
-    # 5. Gerar o Connect Token
+    # 4. Gerar o Connect Token para o MeuPluggy
     connect_token_url = "https://api.pluggy.ai/connect_token"
     connect_headers = {
         "Content-Type": "application/json",
@@ -53,15 +45,10 @@ def handler(environ, start_response):
     
     token_res = requests.post(connect_token_url, json={}, headers=connect_headers)
     
-    # 6. Retornar resposta para o Frontend
-    response_body = json.dumps(token_res.json()).encode('utf-8')
-    
-    headers = [
-        ('Content-Type', 'application/json'),
-        ('Access-Control-Allow-Origin', '*'),
-        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-        ('Access-Control-Allow-Headers', 'Content-Type')
-    ]
-    
-    start_response('200 OK', headers)
-    return [response_body]
+    # 5. Retornar a resposta com os headers de CORS para o Frontend
+    res = jsonify(token_res.json())
+    res.headers['Access-Control-Allow-Origin'] = '*'
+    return res, 200
+
+# Fallback para caso a Vercel procure o handler no escopo global
+handler = app
