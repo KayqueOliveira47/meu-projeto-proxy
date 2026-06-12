@@ -1,2 +1,2 @@
 [tool.vercel]
-entrypoint = "api.proxy:handler"
+entrypoint = "api.proxy:app"
