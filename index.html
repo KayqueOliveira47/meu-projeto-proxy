@@ -48,47 +48,28 @@
 
     <script>
         async function abrirWidgetPluggy() {
-            const statusDiv = document.getElementById('status');
+            // Dentro da sua função abrirWidgetPluggy() no index.html:
+            const response = await fetch('/api/proxy', { method: 'POST' });
+            const data = await response.json();
             
-            // Valida se a biblioteca da Pluggy foi carregada na janela global
-            if (typeof window.PluggyConnect === 'undefined') {
-                statusDiv.innerHTML = `<b style="color: red;">Erro:</b> A biblioteca da Pluggy não carregou corretamente. Verifique sua conexão.`;
-                return;
+            if (!data.accessToken) {
+                throw new Error("Token não encontrado.");
             }
-
-            statusDiv.innerText = "Gerando token seguro...";
-
-            try {
-                // Forçamos a busca na rota correta da API
-                const response = await fetch('/api/proxy', { method: 'POST' });
-                
-                if (response.status === 404) {
-                    throw new Error("A rota de API /api/proxy retornou 404. Verifique as rotas da Vercel.");
+            
+            // Inicializa o Widget visual sem sair da página
+            const pluggyConnect = new window.PluggyConnect({
+                connectToken: data.accessToken,
+                connectorId: 4, // ID do conector MeuPluggy
+                onSuccess: (itemData) => {
+                    console.log('Sucesso! Conta conectada:', itemData);
+                    document.getElementById('status').innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
+                },
+                onError: (error) => {
+                    console.error('Erro no widget:', error);
                 }
-                
-                const data = await response.json();
-                
-                if (!data.accessToken) {
-                    throw new Error("Token não encontrado na resposta do servidor.");
-                }
-
-                statusDiv.innerText = "Abrindo o seletor de bancos...";
-
-                // Inicializa o Widget da Pluggy
-                const pluggyConnect = new window.PluggyConnect({
-                    connectToken: data.accessToken,
-                    connectorId: 4, // ID do MeuPluggy
-                    onSuccess: (itemData) => {
-                        console.log('Sucesso! Conta conectada:', itemData);
-                        statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
-                    },
-                    onError: (error) => {
-                        console.error('Erro no widget da Pluggy:', error);
-                        statusDiv.innerHTML = `<b style="color: red;">Erro na conexão:</b> ${error.message || error}`;
-                    }
-                });
-
-                pluggyConnect.init();
+            });
+            
+            pluggyConnect.init();
 
             } catch (error) {
                 console.error('Erro ao iniciar o processo:', error);
