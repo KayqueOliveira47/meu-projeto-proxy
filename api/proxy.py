@@ -5,11 +5,8 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Rota que lida com o Proxy e também gerencia o CORS automaticamente
-# Mude de @app.route('/api/proxy', ...) para apenas '/'
 @app.route('/', methods=['POST', 'OPTIONS'])
 def proxy_pluggy():
-    # ... resto do código igual ...
     # 1. Trata o Preflight request do CORS
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
@@ -51,6 +48,3 @@ def proxy_pluggy():
     res = jsonify(token_res.json())
     res.headers['Access-Control-Allow-Origin'] = '*'
     return res, 200
-
-# Fallback para caso a Vercel procure o handler no escopo global
-handler = app
