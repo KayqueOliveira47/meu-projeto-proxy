@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conector MeuPluggy</title>
-    <!-- Carrega o script oficial do Widget da Pluggy -->
-    <script src="https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js"></script>
+    <!-- Script Oficial Atualizado da Pluggy Connect -->
+    <script src="https://cdn.pluggy.ai/pluggy-connect/v2/index.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -49,11 +49,23 @@
     <script>
         async function abrirWidgetPluggy() {
             const statusDiv = document.getElementById('status');
+            
+            // Valida se a biblioteca da Pluggy foi carregada na janela global
+            if (typeof window.PluggyConnect === 'undefined') {
+                statusDiv.innerHTML = `<b style="color: red;">Erro:</b> A biblioteca da Pluggy não carregou corretamente. Verifique sua conexão.`;
+                return;
+            }
+
             statusDiv.innerText = "Gerando token seguro...";
 
             try {
-                // Busca o accessToken gerado pela nossa rota /api/proxy do Python
+                // Forçamos a busca na rota correta da API
                 const response = await fetch('/api/proxy', { method: 'POST' });
+                
+                if (response.status === 404) {
+                    throw new Error("A rota de API /api/proxy retornou 404. Verifique as rotas da Vercel.");
+                }
+                
                 const data = await response.json();
                 
                 if (!data.accessToken) {
@@ -62,10 +74,10 @@
 
                 statusDiv.innerText = "Abrindo o seletor de bancos...";
 
-                // Inicializa o Widget da Pluggy na tela
-                const pluggyConnect = new PluggyConnect({
+                // Inicializa o Widget da Pluggy
+                const pluggyConnect = new window.PluggyConnect({
                     connectToken: data.accessToken,
-                    connectorId: 4, // ID do conector do MeuPluggy
+                    connectorId: 4, // ID do MeuPluggy
                     onSuccess: (itemData) => {
                         console.log('Sucesso! Conta conectada:', itemData);
                         statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
@@ -80,7 +92,7 @@
 
             } catch (error) {
                 console.error('Erro ao iniciar o processo:', error);
-                statusDiv.innerHTML = `<b style="color: red;">Erro:</b> Não foi possível carregar o conector.`;
+                statusDiv.innerHTML = `<b style="color: red;">Erro:</b> ${error.message}`;
             }
         }
     </script>
