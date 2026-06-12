@@ -5,7 +5,6 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Definimos a rota exata que o seu frontend vai chamar
 @app.route('/api/proxy', methods=['POST', 'OPTIONS'])
 def proxy_pluggy():
     if request.method == 'OPTIONS':
