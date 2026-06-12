@@ -5,8 +5,10 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-@app.route('/api/proxy', methods=['POST', 'OPTIONS'])
+# Mude para '/' porque o vercel.json já faz o redirecionamento do caminho completo
+@app.route('/', methods=['POST', 'OPTIONS'])
 def proxy_pluggy():
+    # ... todo o resto do seu código Flask continua exatamente igual ...
     if request.method == 'OPTIONS':
         response = app.make_default_options_response()
         headers = response.headers
