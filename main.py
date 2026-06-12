@@ -13,6 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.post("/")
 @app.post("/api/proxy")
 async def proxy_pluggy():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
