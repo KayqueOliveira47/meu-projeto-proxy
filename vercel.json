@@ -1,13 +1,13 @@
 {
-  "version": 2,
-  "routes": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "/api/proxy",
-      "dest": "main.py"
+      "source": "/api/proxy",
+      "destination": "/api/proxy"
     },
     {
-      "src": "/(.*)",
-      "dest": "index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
