@@ -13,9 +13,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/")
-@app.post("/api/proxy")
+# Permitimos POST e GET na raiz e na rota explícita para evitar qualquer erro de método
+@app.api_route("/", methods=["POST", "GET", "OPTIONS"])
+@app.api_route("/api/proxy", methods=["POST", "GET", "OPTIONS"])
 async def proxy_pluggy():
+    # ... todo o resto do seu código da Pluggy continua exatamente igual ...
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
     
