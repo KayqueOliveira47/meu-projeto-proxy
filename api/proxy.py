@@ -1,15 +1,15 @@
-from http.server import BaseHTTPRequestHandler
 import json
 import os
 import requests
+from http.server import BaseHTTPRequestHandler
 
-class handler(BaseHTTPRequestHandler):
+class ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         # 1. Buscar credenciais das variáveis de ambiente da Vercel
         client_id = os.environ.get("PLUGGY_CLIENT_ID")
         client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
         
-        # 2. Autenticar na API da Pluggy para gerar o API Key/Token temporário
+        # 2. Autenticar na API da Pluggy
         auth_url = "https://api.pluggy.ai/auth"
         payload = {
             "clientId": client_id,
@@ -27,25 +27,32 @@ class handler(BaseHTTPRequestHandler):
             
         api_token = auth_response.json().get("apiKey")
         
-        # 3. Gerar um Connect Token para o Widget (Front-end) abrir com segurança
-        # Se você já quiser pré-configurar para abrir direto no conector MeuPluggy:
-        # Você pode passar o "connectorId" do MeuPluggy no options do payload se a API suportar,
-        # ou gerenciar isso no front-end passando o ID do conector MeuPluggy.
+        # 3. Gerar o Connect Token para o Widget
         connect_token_url = "https://api.pluggy.ai/connect_token"
         connect_headers = {
             "Content-Type": "application/json",
             "X-API-KEY": api_token
         }
         
-        # Opcional: restringir ou parametrizar o token
-        connect_payload = {} 
+        token_res = requests.post(connect_token_url, json={}, headers=connect_headers)
         
-        token_res = requests.post(connect_token_url, json=connect_payload, headers=connect_headers)
-        
+        # 4. Resposta para o seu Frontend
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
-        # Libera CORS se o seu front-end estiver em outro domínio Vercel
         self.send_header('Access-Control-Allow-Origin', '*') 
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
         
         self.wfile.write(json.dumps(token_res.json()).encode('utf-8'))
+
+    def do_OPTIONS(self):
+        # Trata o preflight request do CORS se o front estiver em outro domínio
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+# A Vercel procura por essa variável 'handler' mapeada como a classe que gerencia a requisição
+handler = ProxyHandler
