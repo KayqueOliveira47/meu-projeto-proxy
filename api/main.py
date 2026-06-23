@@ -14,24 +14,112 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. Rota GET: Lê o arquivo index.html da mesma pasta e entrega na tela
+# 1. Rota GET: Entrega a interface visual na raiz do site
 @app.get("/")
-@app.get("/api/proxy")
 async def carregar_front():
-    # Encontra o caminho do index.html ao lado deste arquivo main.py
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    html_path = os.path.join(current_dir, "index.html")
-    
-    try:
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content, status_code=200)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao carregar HTML interno: {str(e)}")
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Conector MeuPluggy</title>
+        <script src="https://cdn.pluggy.ai/pluggy-connect/v2/index.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background-color: #f4f5f7;
+                margin: 0;
+            }
+            .btn-conectar {
+                background-color: #0057FF;
+                color: white;
+                border: none;
+                padding: 14px 28px;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                cursor: pointer;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                transition: background 0.2s;
+            }
+            .btn-conectar:hover {
+                background-color: #0042C2;
+            }
+            #status {
+                margin-top: 20px;
+                color: #555;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
 
-# 2. Rota POST: Gera o token da Pluggy
+        <h1>Integração Open Finance</h1>
+        <p>Clique no botão abaixo para conectar sua conta do MeuPluggy.</p>
+        <button class="btn-conectar" onclick="abrirWidgetPluggy()">Conectar Conta Bancária</button>
+        <div id="status"></div>
+
+        <script>
+            async function abrirWidgetPluggy() {
+                const statusDiv = document.getElementById('status');
+                
+                if (typeof window.PluggyConnect === 'undefined') {
+                    statusDiv.innerHTML = `<b style="color: red;">Erro:</b> A biblioteca da Pluggy não carregou.`;
+                    return;
+                }
+
+                statusDiv.innerText = "Gerando token seguro...";
+
+                try {
+                    // SEGREDO AQUI: Dispara o POST direto para a raiz estável do domínio
+                    const response = await fetch('/', { method: 'POST' });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Erro na rota do proxy: Status ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.accessToken) {
+                        throw new Error("Token não encontrado na resposta.");
+                    }
+
+                    statusDiv.innerText = "Abrindo o MeuPluggy...";
+
+                    const pluggyConnect = new window.PluggyConnect({
+                        connectToken: data.accessToken,
+                        connectorId: 4, 
+                        onSuccess: (itemData) => {
+                            console.log('Sucesso! Conta conectada:', itemData);
+                            statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
+                        },
+                        onError: (error) => {
+                            console.error('Erro no widget:', error);
+                            statusDiv.innerHTML = `<b style="color: red;">Erro no widget:</b> ${error.message || error}`;
+                        }
+                    });
+
+                    pluggyConnect.init();
+
+                } catch (error) {
+                    console.error('Erro:', error);
+                    statusDiv.innerHTML = `<b style="color: red;">Erro:</b> ${error.message}`;
+                }
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
+
+# 2. Rota POST: Intercepta o clique do botão na raiz e gera o token da Pluggy
 @app.post("/")
-@app.post("/api/proxy")
 async def proxy_pluggy():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
