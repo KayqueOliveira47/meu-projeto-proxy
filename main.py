@@ -1,6 +1,7 @@
 import os
 import requests
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -13,11 +14,109 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Permitimos POST e GET na raiz e na rota explícita para evitar qualquer erro de método
-@app.api_route("/", methods=["POST", "GET", "OPTIONS"])
-@app.api_route("/api/proxy", methods=["POST", "GET", "OPTIONS"])
+# 1. Quando você entra pelo navegador (MÉTODO GET), ele desenha a tela
+@app.get("/", response_class=HTMLResponse)
+async def carregar_front():
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Conector MeuPluggy</title>
+        <script src="https://cdn.pluggy.ai/pluggy-connect/v2/index.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background-color: #f4f5f7;
+                margin: 0;
+            }
+            .btn-conectar {
+                background-color: #0057FF;
+                color: white;
+                border: none;
+                padding: 14px 28px;
+                font-size: 16px;
+                font-weight: bold;
+                border-radius: 8px;
+                cursor: pointer;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                transition: background 0.2s;
+            }
+            .btn-conectar:hover {
+                background-color: #0042C2;
+            }
+            #status {
+                margin-top: 20px;
+                color: #555;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <h1>Integração Open Finance</h1>
+        <p>Clique no botão abaixo para conectar sua conta do MeuPluggy.</p>
+        <button class="btn-conectar" onclick="abrirWidgetPluggy()">Conectar Conta Bancária</button>
+        <div id="status"></div>
+
+        <script>
+            async function abrirWidgetPluggy() {
+                const statusDiv = document.getElementById('status');
+                
+                if (typeof window.PluggyConnect === 'undefined') {
+                    statusDiv.innerHTML = `<b style="color: red;">Erro:</b> A biblioteca da Pluggy não carregou.`;
+                    return;
+                }
+
+                statusDiv.innerText = "Gerando token seguro...";
+
+                try {
+                    // Chama a rota POST do nosso próprio arquivo Python para pegar o token
+                    const response = await fetch('/', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (!data.accessToken) {
+                        throw new Error("Token não encontrado na resposta.");
+                    }
+
+                    statusDiv.innerText = "Abrindo o MeuPluggy...";
+
+                    const pluggyConnect = new window.PluggyConnect({
+                        connectToken: data.accessToken,
+                        connectorId: 4, // ID fixo do Mypluggy
+                        onSuccess: (itemData) => {
+                            console.log('Sucesso! Conta conectada:', itemData);
+                            statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
+                        },
+                        onError: (error) => {
+                            console.error('Erro no widget:', error);
+                            statusDiv.innerHTML = `<b style="color: red;">Erro no widget:</b> ${error.message || error}`;
+                        }
+                    });
+
+                    pluggyConnect.init();
+
+                } catch (error) {
+                    console.error('Erro:', error);
+                    statusDiv.innerHTML = `<b style="color: red;">Erro:</b> ${error.message}`;
+                }
+            }
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
+
+# 2. Quando o botão clica (MÉTODO POST), o Python gera o Token nos bastidores
+@app.post("/")
+@app.post("/api/proxy")
 async def proxy_pluggy():
-    # ... todo o resto do seu código da Pluggy continua exatamente igual ...
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
     
