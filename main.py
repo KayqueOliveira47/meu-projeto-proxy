@@ -14,8 +14,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. Quando você entra pelo navegador (MÉTODO GET), ele desenha a tela
-@app.get("/", response_class=HTMLResponse)
+# 1. Rota GET na raiz: Entrega o HTML visual com o botão azul
+@app.get("/")
 async def carregar_front():
     html_content = """
     <!DOCTYPE html>
@@ -77,8 +77,13 @@ async def carregar_front():
                 statusDiv.innerText = "Gerando token seguro...";
 
                 try {
-                    // Chama a rota POST do nosso próprio arquivo Python para pegar o token
-                    const response = await fetch('/', { method: 'POST' });
+                    // Mudamos aqui para buscar explicitamente na rota da API criada abaixo
+                    const response = await fetch('/api/proxy', { method: 'POST' });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Erro no servidor: Status ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     
                     if (!data.accessToken) {
@@ -89,7 +94,7 @@ async def carregar_front():
 
                     const pluggyConnect = new window.PluggyConnect({
                         connectToken: data.accessToken,
-                        connectorId: 4, // ID fixo do Mypluggy
+                        connectorId: 4, 
                         onSuccess: (itemData) => {
                             console.log('Sucesso! Conta conectada:', itemData);
                             statusDiv.innerHTML = `<b style="color: green;">Sucesso!</b> ID da Conexão: ${itemData.item.id}`;
@@ -113,8 +118,7 @@ async def carregar_front():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-# 2. Quando o botão clica (MÉTODO POST), o Python gera o Token nos bastidores
-@app.post("/")
+# 2. Rota POST explícita: A Vercel exige caminhos de API para requisições assíncronas
 @app.post("/api/proxy")
 async def proxy_pluggy():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
