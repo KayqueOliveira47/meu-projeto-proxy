@@ -2,6 +2,10 @@
   "version": 2,
   "routes": [
     {
+      "src": "/api/token",
+      "dest": "api/main.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "api/main.py"
     }
