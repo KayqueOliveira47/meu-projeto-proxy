@@ -14,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. Rota GET: Entrega a interface visual na raiz do site
 @app.get("/")
 async def carregar_front():
     html_content = """
@@ -77,7 +76,7 @@ async def carregar_front():
                 statusDiv.innerText = "Gerando token seguro...";
 
                 try {
-                    // SEGREDO AQUI: Dispara o POST direto para a raiz estável do domínio
+                    // Dispara o POST direto para a raiz controlada pelo FastAPI
                     const response = await fetch('/', { method: 'POST' });
                     
                     if (!response.ok) {
@@ -118,7 +117,6 @@ async def carregar_front():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-# 2. Rota POST: Intercepta o clique do botão na raiz e gera o token da Pluggy
 @app.post("/")
 async def proxy_pluggy():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
