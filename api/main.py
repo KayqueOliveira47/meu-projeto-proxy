@@ -14,6 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 1. Rota GET na raiz: Entrega o HTML visual quando você acessa o site
 @app.get("/")
 async def carregar_front():
     html_content = """
@@ -76,8 +77,8 @@ async def carregar_front():
                 statusDiv.innerText = "Gerando token seguro...";
 
                 try {
-                    // Dispara o POST direto para a raiz controlada pelo FastAPI
-                    const response = await fetch('/', { method: 'POST' });
+                    // MUDANÇA ESTRATÉGICA: Dispara o POST para a rota dedicada de API
+                    const response = await fetch('/api/token', { method: 'POST' });
                     
                     if (!response.ok) {
                         throw new Error(`Erro na rota do proxy: Status ${response.status}`);
@@ -117,7 +118,8 @@ async def carregar_front():
     """
     return HTMLResponse(content=html_content, status_code=200)
 
-@app.post("/")
+# 2. Rota POST dedicada: Evita o bloqueio da Vercel na rota raiz
+@app.post("/api/token")
 async def proxy_pluggy():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
