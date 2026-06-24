@@ -1,3 +1,4 @@
+# Forçando redeploy definitivo 2026
 import os
 import requests
 from fastapi import FastAPI, HTTPException
