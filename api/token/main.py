@@ -19,9 +19,9 @@ app.add_middleware(
 async def raiz():
     return {"status": "operacional"}
 
-# NOVA ROTA: Isso vai forçar a Vercel a compilar o código novo!
-@app.post("/api/token")
-@app.get("/api/token")
+# Mude de @app.post("/api/token") para apenas "/"
+@app.post("/")
+@app.get("/")
 async def obter_connect_token():
     client_id = os.environ.get("PLUGGY_CLIENT_ID")
     client_secret = os.environ.get("PLUGGY_CLIENT_SECRET")
