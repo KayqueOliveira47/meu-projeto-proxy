@@ -8,4 +8,4 @@ dependencies = [
 ]
 
 [tool.vercel]
-entrypoint = "api/main.py:app"
+entrypoint = "api.token.main:app"
